@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:cache="http://www.springframework.org/schema/cache"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:p="http://www.springframework.org/schema/p" xmlns:task="http://www.springframework.org/schema/task"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:lang="http://www.springframework.org/schema/lang"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang-4.1.xsd
+		http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-4.1.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.1.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.1.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-4.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.1.xsd
+		http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache-4.1.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.1.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.1.xsd">
+
+
+	<bean id="propertyConfigurer"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>classpath:properties/jdbc.properties</value>
+				<value>classpath:properties/mail.properties</value>
+			</list>
+		</property>
+	</bean>
+
+
+	<!-- 如果 sprinmvc 和 spring ioc 扫描的包有重合就会把类初始化2次 context:component-scan -->
+	<!-- beans可以引用springmvc的类,但是springmvc不能引用spring的类 -->
+	<!-- Springmvc 的ioc容器中的bean可以引用spring 的ioc容器的bean,反之不可以 -->
+	<context:component-scan
+		base-package="com.sniper.springmvc.hibernate.*,com.sniper.springmvc.scheduler">
+		<!-- 不扫描的带有这些注解的类 -->
+		<context:exclude-filter type="annotation"
+			expression="org.springframework.stereotype.Controller" />
+		<context:exclude-filter type="annotation"
+			expression="org.springframework.web.bind.annotation.ControllerAdvice" />
+	</context:component-scan>
+
+	<!-- 配置数据源,其他框架 -->
+
+	<!-- 分库配置 master -->
+	<bean id="dataSource_main" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+		<property name="driverClass" value="${jdbc.driverClass}" />
+		<property name="jdbcUrl" value="${jdbc.jdbcUrl}" />
+		<property name="user" value="${jdbc.user}" />
+		<property name="password" value="${jdbc.password}" />
+		<property name="idleConnectionTestPeriod" value="${c3p0.idleConnectionTestPeriod}" />
+		<property name="preferredTestQuery" value="${c3p0.preferredTestQuery}" />
+		<property name="testConnectionOnCheckin" value="${c3p0.testConnectionOnCheckin}" />
+		<property name="testConnectionOnCheckout" value="${c3p0.testConnectionOnCheckout}" />
+		<property name="maxPoolSize" value="${c3p0.maxPoolSize}" />
+		<property name="minPoolSize" value="${c3p0.minPoolSize}" />
+		<property name="initialPoolSize" value="${c3p0.initialPoolSize}" />
+		<property name="acquireIncrement" value="${c3p0.acquireIncrement}" />
+	</bean>
+
+	<!-- 分库配置 slave -->
+	<bean id="dataSource_salve" parent="dataSource_main">
+		<property name="jdbcUrl" value="${jdbc.jdbcUrlSalve}" />
+	</bean>
+
+	<bean id="dataSource_local" parent="dataSource_main">
+		<property name="jdbcUrl" value="${jdbc.jdbcUrlLocal}" />
+		<property name="user" value="${jdbc.userLocal}" />
+		<property name="password" value="${jdbc.passwordLocal}" />
+	</bean>
+
+	<!-- 配置数据源路由器 -->
+	<bean id="dataSourceRouter" class="com.sniper.springmvc.datasource.DataSourceRouter">
+		<property name="targetDataSources">
+			<map>
+				<entry key="master" value-ref="dataSource_main" />
+				<entry key="salve" value-ref="dataSource_salve" />
+				<entry key="local" value-ref="dataSource_local" />
+			</map>
+		</property>
+		<!-- 默认数据源集合 -->
+		<property name="defaultTargetDataSource" ref="dataSource_main" />
+	</bean>
+
+	<!-- 配置SqlSessionFactoryBean -->
+	<!-- <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean"> 
+		<property name="dataSource" ref="dataSource" /> <property name="configLocation" 
+		value="classpath:config/mybatis-config.xml" /> </bean> -->
+
+	<!-- 呢目的会话工厂bean(spring整合hinernate的核心入口) -->
+	<bean id="sessionFactory"
+		class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+		<!-- 配置路由数据源 -->
+		<property name="dataSource" ref="dataSourceRouter" />
+		<property name="configLocation" value="classpath:hibernate.cfg.xml" />
+		<!-- 注解 -->
+		<property name="packagesToScan">
+			<list>
+				<value>com.sniper.springmvc.model</value>
+			</list>
+		</property>
+
+	</bean>
+	<!-- hibernate事务管理器,用来在service层面上实现事务管理,实现平台无关行 -->
+	<bean id="transactionManager"
+		class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+
+	<!-- 事物通知 -->
+	<!-- rollback-for回滚事物，果存在一个事务，则支持当前事务。如果没有事务则开启 -->
+	<!-- aopalliance-1.0 需要这个包否则报错，这个包在struts里面 -->
+	<!-- execute 不错日志处理因为问卷关系复杂级联太多,日志进入死循环 -->
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="save*" propagation="REQUIRED" isolation="DEFAULT"
+				rollback-for="Exception" />
+			<tx:method name="delete*" propagation="REQUIRED" isolation="DEFAULT"
+				rollback-for="Exception" />
+			<tx:method name="update*" propagation="REQUIRED" isolation="DEFAULT"
+				rollback-for="Exception" />
+			<tx:method name="batch*" propagation="REQUIRED" isolation="DEFAULT"
+				rollback-for="Exception" />
+			<tx:method name="execute*" propagation="REQUIRED"
+				isolation="DEFAULT" rollback-for="Exception" />
+
+			<tx:method name="get*" propagation="REQUIRED" isolation="DEFAULT"
+				read-only="true" rollback-for="Exception" />
+			<tx:method name="load*" propagation="REQUIRED" isolation="DEFAULT"
+				read-only="true" rollback-for="Exception" />
+			<tx:method name="find*" propagation="REQUIRED" isolation="DEFAULT"
+				read-only="true" rollback-for="Exception" />
+
+			<!-- <tx:method name="*" propagation="NOT_SUPPORTED" isolation="DEFAULT" 
+				read-only="true"/> -->
+			<tx:method name="*" propagation="REQUIRED" isolation="DEFAULT" />
+		</tx:attributes>
+	</tx:advice>
+
+	<!-- 切入点通知 -->
+	<!-- 日志记录 -->
+	<bean id="logger" class="com.sniper.springmvc.advice.Logger" />
+
+
+	<!-- EhCache library setup -->
+	<bean id="ehcache"
+		class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean"
+		p:config-location="classpath:ehcache.xml" />
+
+	<bean id="cacheManager" class="org.springframework.cache.ehcache.EhCacheCacheManager"
+		p:cache-manager-ref="ehcache" />
+
+	<!-- 自定义生成缓存key -->
+	<bean id="surveyKey" class="com.sniper.springmvc.cache.SurveyKey"></bean>
+
+	<!-- 配置数据库注解aop -->
+	<bean id="manyDataSourceAspect" class="com.sniper.springmvc.datasource.DataSourceAspect"></bean>
+	<!-- 配置数据库注解aop -->
+
+	<cache:advice id="cacheAdvice" cache-manager="cacheManager"
+		key-generator="surveyKey">
+		<!-- -->
+		<cache:caching cache="SurveyAdminRight">
+			<!-- 缓存方法 保存的key -->
+			<cache:cacheable method="getC*" />
+			<cache:cacheable method="loadC*" />
+			<cache:cacheable method="findC*" />
+
+			<!-- 删除缓存的方法 就是当执行下面方法的时候除掉缓存 需要配合aop切入点才管用 -->
+			<cache:cache-evict method="save*" all-entries="true" />
+			<cache:cache-evict method="update*" all-entries="true" />
+			<cache:cache-evict method="delete*" all-entries="true" />
+			<cache:cache-evict method="clear*" all-entries="true" />
+			<cache:cache-evict method="toggle*" all-entries="true" />
+			<cache:cache-evict method="move*" all-entries="true" />
+			<cache:cache-evict method="batch*" all-entries="true" />
+		</cache:caching>
+	</cache:advice>
+
+	<aop:config>
+		<!-- order 值越大优先值越低 -->
+		<!-- 事务切入点通知 -->
+
+		<aop:advisor advice-ref="txAdvice" pointcut="execution(* *..*Service.*(..))"
+			order="11" />
+		<!-- 缓存切入点通知 -->
+		<aop:advisor advice-ref="cacheAdvice"
+			pointcut="(execution(* *..*Service.getC*(..))
+											or execution(* *..*Service.findC*(..))
+											or execution(* *..*Service.loadC*(..))
+											or execution(* *..*Service.save*(..))
+											or execution(* *..*Service.update*(..))
+											or execution(* *..*Service.delete*(..))
+											or execution(* *..*Service.move*(..))
+											or execution(* *..*Service.toggle*(..))
+											or execution(* *..*Service.clear*(..)))
+											and !bean(myUserDetail)
+											"
+			order="10" />
+
+		<!-- logger切面 -->
+		<aop:aspect id="loggerAspect" ref="logger" order="10">
+			<aop:around method="record"
+				pointcut="(execution(* *..*Service.save*(..)) 
+											or execution(* *..*Service.update*(..))
+											or execution(* *..*Service.delete*(..))
+											or execution(* *..*Service.batch*(..))
+											or execution(* *..*Service.new*(..))
+											or execution(* *..*Service.move*(..)) 
+											or execution(* *..*Service.clear*(..))
+											or execution(* *..*Service.toggle*(..)))
+											and !bean(logService)
+											" />
+		</aop:aspect>
+
+		<aop:aspect id="dataSourceAspect" ref="manyDataSourceAspect"
+			order="0">
+			<aop:before method="before" pointcut="execution(* *..*Service.*(..))" />
+		</aop:aspect>
+
+	</aop:config>
+
+	<bean id="mailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+		<property name="defaultEncoding" value="${mail.smtp.encoding}" />
+		<property name="host" value="${mail.smtp.host}" />
+		<property name="username" value="${mail.smtp.username}" />
+		<property name="password" value="${mail.smtp.password}" />
+		<property name="javaMailProperties">
+			<props>
+				<!-- 是否开启验证 -->
+				<prop key="mail.smtp.auth">${mail.smtp.auth}</prop>
+				<prop key="mail.debug">true</prop>
+				<!-- 设置发送延迟 -->
+				<prop key="mail.smtp.timeout">${mail.smtp.timeout}</prop>
+			</props>
+		</property>
+	</bean>
+
+	<!-- 设置计划人物扫描 -->
+	<task:annotation-driven />
+
+	<!--加载 -->
+	<bean id="springContextHelper" class="com.sniper.springmvc.security.SpringContextUtil"></bean>
+	
+</beans>

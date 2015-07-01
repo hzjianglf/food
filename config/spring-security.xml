@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns="http://www.springframework.org/schema/security"
+	xmlns:beans="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.0.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd">
+
+	<global-method-security pre-post-annotations="enabled" />
+
+	<http pattern="/myfiles/**" security="none" />
+	<http pattern="/attachments/**" security="none" />
+	<http pattern="/verify**" security="none" />
+
+
+	<http disable-url-rewriting="true" use-expressions="false"
+		entry-point-ref="authenticationProcessingFilterEntryPoint">
+		<!-- 匿名授权 -->
+		<access-denied-handler error-page="/WEB-INF/template/error/error_no_right.jsp" />
+		<!--auto-config = true 则使用from-login. 如果不使用该属性 则默认为http-basic(没有session). -->
+		<!-- lowercase-comparisons：表示URL比较前先转为小写。 -->
+		<!-- path-type：表示使用Apache Ant的匹配模式。 -->
+		<!--access-denied-page：访问拒绝时转向的页面。 -->
+		<!-- access-decision-manager-ref：指定了自定义的访问策略管理器。 -->
+		<intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
+		<intercept-url pattern="/admin**" access="ROLE_ADMIN" />
+
+		<!-- <form-login /> -->
+		<!-- username-parameter="j_username" password-parameter="j_password" login-processing-url="j_spring_security_check" -->
+		<!-- <form-login login-page="/admin/login" authentication-failure-url="/admin/login?error=true" 
+			default-target-url="/admin" username-parameter="username" password-parameter="password" 
+			/> -->
+
+		<!--login-page：指定登录页面。 -->
+		<!-- login-processing-url：指定了客户在登录页面中按下 Sign In 按钮时要访问的 URL。 -->
+		<!-- authentication-failure-url：指定了身份验证失败时跳转到的页面。 -->
+		<!-- default-target-url：指定了成功进行身份验证和授权后默认呈现给用户的页面。 -->
+		<!-- always-use-default-target：指定了是否在身份验证通过后总是跳转到default-target-url属性指定的URL。 -->
+		<!-- /j_spring_security_logout, 注销页面 -->
+		<!--logout-url：指定了用于响应退出系统请求的URL。其默认值为：/j_spring_security_logout。 -->
+		<!-- logout-success-url：退出系统后转向的URL。 -->
+		<!-- invalidate-session：指定在退出系统时是否要销毁Session。 -->
+		<logout logout-success-url="/admin/login" logout-url="/logout"
+			delete-cookies="JSESSIONID" />
+		<!-- 表单中的name是 remember_me -->
+		<!-- services-ref="rememberMeServices" -->
+		<remember-me remember-me-parameter="_spring_security_remember_me"
+			remember-me-cookie="SPRING_SECURITY_REMEMBER_ME_COOKIE" />
+
+		<!-- <http-basic /> -->
+		<csrf disabled="false" />
+		<headers disabled="false">
+			<cache-control />
+			<content-type-options />
+			<hsts />
+			<!-- 加载 frame级别 -->
+			<frame-options policy="SAMEORIGIN" />
+			<xss-protection />
+
+			<!-- 静态头部信息 -->
+			<!-- <header name="Content-Security-Policy" value="default-src 'self'" 
+				/> <header name="Content-Security-Report-Only" value="default-src 'self'" 
+				/> -->
+
+		</headers>
+		<!-- 检测session是否可用的地址 max-sessions=1配合单用户登录最大session个数=1 -->
+		<!-- session-fixation-protection 解决session伪造 -->
+		<!-- error-if-maximum-exceeded 解决单一登录，不提出第一个登录 -->
+		<!-- max-sessions:允许用户帐号登录的次数。范例限制用户只能登录一次。 -->
+		<!-- 此值表示：用户第二次登录时，前一次的登录信息都被清空。 -->
+		<!-- 需要在web.xml添加监听器 org.springframework.security.web.session.HttpSessionEventPublisher -->
+		<session-management session-fixation-protection="none">
+			<concurrency-control max-sessions="1"
+				error-if-maximum-exceeded="true" />
+		</session-management>
+		<!-- 设置验证filter -->
+		
+		<custom-filter ref="myLoginFilter" before="FORM_LOGIN_FILTER" />
+		<custom-filter ref="mySniperFilter" before="FILTER_SECURITY_INTERCEPTOR" />
+
+	</http>
+
+	<!-- <beans:bean id="requestDataValueProcessor" class="org.springframework.security.web.servlet.support.csrf.CsrfRequestDataValueProcessor" 
+		/> <beans:bean id="csrfFilter" class="org.springframework.security.web.csrf.CsrfFilter"> 
+		<beans:constructor-arg> <beans:bean class="org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository"> 
+		<beans:property name="headerName" value="X-SECURITY" /> </beans:bean> </beans:constructor-arg> 
+		</beans:bean> -->
+
+	<beans:bean id="rememberMeServices"
+		class="org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices">
+
+		<beans:constructor-arg name="userDetailsService"
+			ref="myUserDetail" />
+		<beans:constructor-arg name="key" value="remember_me" />
+		<beans:property name="alwaysRemember" value="true" />
+		<beans:property name="tokenValiditySeconds" value="86400" />
+		<beans:property name="parameter" value="remember_me" />
+		<beans:property name="cookieName"
+			value="spring_security_remember_me_cookies" />
+	</beans:bean>
+
+	<!-- 配置过滤器 -->
+	<beans:bean id="mySniperFilter"
+		class="com.sniper.springmvc.security.MyFilterSecurityInterceptor">
+		<!-- 用户拥有的权限 -->
+		<beans:property name="authenticationManager" ref="authenticationManager" />
+		<!-- 用户是否拥有所请求资源的权限 -->
+		<beans:property name="accessDecisionManager" ref="myAccessDecisionManagerBean" />
+		<!-- 资源与权限对应关系 -->
+		<beans:property name="securityMetadataSource" ref="securityMetadataSource" />
+	</beans:bean>
+
+	<!-- 认真管理器，实现用户认证的入口，主要实现USerDetailsService 接口即可 -->
+	<authentication-manager alias="authenticationManager">
+		<authentication-provider user-service-ref="myUserDetail">
+			<!-- 因为用户登录自定义，密码加密在自定义里面加密过了所以这里不用设置加密 -->
+			<!-- <password-encoder hash="md5"> -->
+			<!-- <salt-source user-property="username"/> <salt-source user-property="password"/> -->
+			<!-- </password-encoder> -->
+		</authentication-provider>
+	</authentication-manager>
+
+	<!-- 读取用户的密码，角色信息，是否锁定，账号是否过期 -->
+	<beans:bean id="myUserDetail"
+		class="com.sniper.springmvc.security.MyUserDetailsService">
+	</beans:bean>
+
+	<!-- 访问决策其，决定那个用户具有的角色，是否足够权限访问 -->
+	<beans:bean id="myAccessDecisionManagerBean"
+		class="com.sniper.springmvc.security.myAccessDecisionManagerBean" />
+	<!-- 资源数据定义，将所有的资源和权限对应关系建立起来，及定义木易资源可以被大写橘色访问 -->
+	<beans:bean id="securityMetadataSource"
+		class="com.sniper.springmvc.security.MySecurityMetadataSource">
+		<beans:property name="adminRightService" ref="adminRightService" />
+	</beans:bean>
+	<!-- 自定义登录filter -->
+	<beans:bean id="myLoginFilter"
+		class="com.sniper.springmvc.security.MyUsernamePasswordAuthenticationFilter">
+		<!-- 处理登录 -->
+		<beans:property name="filterProcessesUrl" value="/login_check" />
+		<!-- 处理登录成功之后的处理 -->
+		<beans:property name="authenticationSuccessHandler"
+			ref="loginLogAuthenticationSuccessHandler" />
+		<!-- 验证失败 -->
+		<beans:property name="authenticationFailureHandler"
+			ref="simpleUrlAuthenticationFailureHandler" />
+		<beans:property name="authenticationManager" ref="authenticationManager" />
+		<!-- 注入用户dao -->
+		<beans:property name="adminUserService" ref="adminUserService" />
+		<!-- <beans:property name="rememberMeServices" ref="rememberMeServices" 
+			/> -->
+	</beans:bean>
+	<!-- 登录成功后跳转页面 -->
+	<beans:bean id="loginLogAuthenticationSuccessHandler"
+		class="org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler">
+		<beans:property name="defaultTargetUrl" value="/admin/" />
+	</beans:bean>
+	<!-- 登录失败后跳转页面 -->
+	<beans:bean id="simpleUrlAuthenticationFailureHandler"
+		class="org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler">
+		<!-- 可以配置相应的跳转方式。属性forwardToDestination为true采用forward false为sendRedirect -->
+		<beans:property name="defaultFailureUrl" value="/admin/login?error=true" />
+	</beans:bean>
+
+	<!-- 未登录用户跳转页面 -->
+	<beans:bean id="authenticationProcessingFilterEntryPoint"
+		class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint">
+		<beans:constructor-arg value="/admin/login" />
+	</beans:bean>
+</beans:beans>
+

@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:cache="http://www.springframework.org/schema/cache"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:p="http://www.springframework.org/schema/p" xmlns:task="http://www.springframework.org/schema/task"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:lang="http://www.springframework.org/schema/lang"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang-4.0.xsd
+		http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-4.0.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.1.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-4.0.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd
+		http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache-4.0.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd">
+
+	<!--需要进行 spring整合springmvc么 还是需要加入spring的ioc容器 是否需要在web.xml中配置springioc容器的ContextLoaderListener 
+		1.需要:通常情况下,类似于数据源,事务,整合其他框架都是放在spring配置文件中(而不是放在springmv里面) 2.不需要都放在springmvc的配置文件中,也可以分多个Spring 
+		的配置文件然后import 节点导入其他的配置文件 实际上 -->
+	<context:component-scan base-package="com.sniper.springmvc">
+		<!-- 不扫描的带有这些注解的类 -->
+		<context:exclude-filter type="annotation"
+			expression="org.springframework.stereotype.Service" />
+
+	</context:component-scan>
+	<!-- 其实不用下面的写法,springmvc自动能匹配到自己的解析器 -->
+	<bean id="viewResolver" class="com.sniper.springmvc.view.SniperViewResolver">
+		<property name="defaultViewResolver" ref="beanNameViewResolver" />
+		<property name="viewResolverMap">
+			<map>
+				<entry>
+					<key>
+						<set>
+							<value>.jsp</value>
+						</set>
+					</key>
+					<ref bean="jspViewResolver" />
+				</entry>
+				<entry>
+					<key>
+						<value>.ftl</value>
+					</key>
+					<ref bean="freeMarkerViewResolver" />
+				</entry>
+			</map>
+		</property>
+	</bean>
+
+	<!-- 配置 freemarker解析器 -->
+	<!-- http://www.osblog.net/wangxp/140.html -->
+	<bean id="freeMarkerViewResolver"
+		class="org.springframework.web.servlet.view.freemarker.FreeMarkerViewResolver">
+		<property name="viewClass"
+			value="org.springframework.web.servlet.view.freemarker.FreeMarkerView" />
+		<property name="suffix" value="" />
+		<property name="viewNames" value="*.ftl" />
+		<property name="prefix" value="" />
+		<property name="cache" value="false" />
+		<property name="contentType" value="text/html;charset=UTF-8" />
+		<property name="exposeRequestAttributes" value="true" />
+		<property name="exposeSessionAttributes" value="true" />
+		<property name="exposeSpringMacroHelpers" value="true" />
+		<!-- 此变量值为pageContext.request, 页面使用方法：base.contextPath -->
+		<property name="requestContextAttribute" value="base" />
+		<property name="order" value="0" />
+	</bean>
+
+	<bean id="fmXmlEscape" class="freemarker.template.utility.XmlEscape"></bean>
+
+	<bean id="freemarkerConfig"
+		class="org.springframework.web.servlet.view.freemarker.FreeMarkerConfigurer">
+		<property name="templateLoaderPath" value="/WEB-INF/template/" />
+		<property name="defaultEncoding" value="UTF-8" />
+		<property name="freemarkerVariables">
+			<map>
+				<entry key="xml_escape" value-ref="fmXmlEscape" />
+			</map>
+		</property>
+		<property name="freemarkerSettings">
+			<props>
+				<prop key="tag_syntax">auto_detect</prop>
+				<prop key="template_update_delay">5</prop>
+				<prop key="defaultEncoding">UTF-8</prop>
+				<prop key="url_escaping_charset">UTF-8</prop>
+				<prop key="locale">zh_CN</prop>
+				<prop key="boolean_format">true,false</prop>
+				<prop key="datetime_format">yyyy-MM-dd HH:mm:ss</prop>
+				<prop key="date_format">yyyy-MM-dd</prop>
+				<prop key="time_format">HH:mm:ss</prop>
+				<prop key="number_format">0.######</prop>
+				<prop key="whitespace_stripping">true</prop>
+				<!--空值处理<prop key="classic_compatible">true</prop> -->
+				<!-- <prop key="auto_import">/ftl/tags/index.ftl as p,/ftl/spring.ftl 
+					as s</prop> -->
+			</props>
+		</property>
+
+	</bean>
+
+	<!-- 配置 jsp 试图解析器 -->
+	<!-- http://www.cnblogs.com/huligong1234/p/3515747.html -->
+
+	<!--配置试图 beanNameViewResolver解析器 ,使用试图的名字来解析试图 -->
+	<!-- 通过order来设置 试图解析器的优先级,只要配置都会被默认的小 -->
+	<bean id="beanNameViewResolver"
+		class="org.springframework.web.servlet.view.BeanNameViewResolver">
+		<!-- <property name="order" value="100" /> -->
+	</bean>
+
+	<bean id="jspViewResolver"
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="prefix" value="/WEB-INF/template/" />
+		<property name="viewClass"
+			value="org.springframework.web.servlet.view.JstlView" />
+	</bean>
+
+	<bean id="localeResolver"
+		class="org.springframework.web.servlet.i18n.CookieLocaleResolver">
+		<property name="cookieName" value="clientlanguage" />
+		<property name="cookieMaxAge" value="-1" />
+	</bean>
+
+	<!-- id 必须是 messageSource否则出错 -->
+	<!-- 使用jstl 资源国际化的设置 -->
+	<bean id="messageSource"
+		class="org.springframework.context.support.ResourceBundleMessageSource">
+		<property name="basename" value="i18n" />
+	</bean>
+
+	<!-- 配置直接转发的页面 -->
+	<!-- 直接响应转发的页面不经过handler的方法 ,如果不加上下面的配置以前的 url都会失效 -->
+	<mvc:view-controller path="/success" view-name="success" />
+
+	<!-- 取消对静态资源的解释,这样可以直接访问静态资源,这里判断访问资源是否被映射过 -->
+	<!-- 这样不会出现找不到匹配资源的情况 -->
+	<mvc:default-servlet-handler />
+	<!-- 静态文件映射 -->
+	<mvc:resources location="/myfiles/" mapping="/myfiles/**" />
+
+	<!-- 下面是我学习是写的可以把你们没有的删除即可 -->
+
+	<!-- 在实际开发中都通常需要配置 mvc:annotion-driven 标签 -->
+	<!-- 加上这个配置就不会除了mvc之外的url都不能使用 -->
+	<!-- 作用有很多会住测三个bean 支持实例对表单参数类型转换 支持很多类型注解数据类型的格式化 --><!-- -->
+	<!-- <mvc:annotation-driven /> -->
+	<!-- 下面的写法可以使用自定义转换器,自定义类型转换器和系统类型转换器一起使用 -->
+
+	<mvc:annotation-driven conversion-service="conversionService" />
+	<!-- 配置 conversionService -->
+	<!-- org.springframework.context.support.ConversionServiceFactoryBean -->
+	<bean id="conversionService"
+		class="org.springframework.format.support.FormattingConversionServiceFactoryBean">
+		<property name="converters">
+			<set>
+				<!-- 使用 @Component注册 用spring扫描 -->
+				<ref bean="groupAddRightConverter" />
+				<ref bean="postAddFilesConverter" />
+				<ref bean="postAddChannelsConverter" />
+			</set>
+		</property>
+	</bean>
+	<!-- 验证 -->
+	<bean id="validationFactoryBean"
+		class="org.springframework.validation.beanvalidation.LocalValidatorFactoryBean">
+	</bean>
+
+	<!-- 配置 SessionLocaleResolver -->
+	<bean id="localResolver"
+		class="org.springframework.web.servlet.i18n.SessionLocaleResolver" />
+	<!-- 下面的拦截器可以指定url开始的 -->
+	<!-- 配置链接修改语言环境的 拦截器 org.springframework.web.servlet.i18n.LocaleChangeInterceptor -->
+	<mvc:interceptors>
+		<!-- 配置自定义拦截器,controller的使用时间 -->
+		<mvc:interceptor>
+			<mvc:mapping path="/**" />
+			<mvc:exclude-mapping path="/myfiles/**" />
+			<mvc:exclude-mapping path="/verify**" />
+			<bean class="com.sniper.springmvc.interceptions.RunTimeInterceptor" />
+			<!-- 链接改变语言环境的session拦截器 -->
+		</mvc:interceptor>
+
+		<mvc:interceptor>
+			<mvc:mapping path="/**" />
+			<mvc:exclude-mapping path="/myfiles/**" />
+			<mvc:exclude-mapping path="/verify**" />
+			<!-- 链接改变语言环境的session拦截器 -->
+			<bean class="com.sniper.springmvc.interceptions.MyLocaleChangeInterceptor" />
+		</mvc:interceptor>
+
+		<mvc:interceptor>
+			<!-- 拦截器管用的路径 -->
+			<mvc:mapping path="/springmvc" />
+			<!-- 那个拦截器使用此条规则 -->
+			<bean class="com.sniper.springmvc.interceptions.SecondInterceptor" />
+			<!-- 拦截器不管用的路径 -->
+			<!-- <mvc:exclude-mapping path="/abc"/> -->
+		</mvc:interceptor>
+	</mvc:interceptors>
+	<!-- 上传文件配置 -->
+	<bean id="multipartResolver"
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<property name="defaultEncoding" value="UTF-8" />
+		<property name="maxUploadSize" value="10485760" />
+	</bean>
+
+	<!-- 配置错误处理页面 -->
+	<!-- 通过 SimpleMappingExceptionResolver处理错误页面 -->
+
+	<bean
+		class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+		<!-- 更改试图中exception的名称 -->
+		<!-- <property name="exceptionAttribute" value="ex"></property> <property 
+			name="exceptionMappings"> <props> <prop key="java.lang.ArrayIndexOutOfRoundsException"></prop> 
+			</props> </property> -->
+
+		<!-- <property name="exceptionMappings"> <props> <prop key="java.lang.Throwable">500</prop> 
+			</props> </property> <property name="warnLogCategory" value="WARN"></property> 
+			<property name="defaultErrorView" value="500"></property> <property name="defaultStatusCode" 
+			value="500"></property> <property name="statusCodes"> <props> <prop key="404">404</prop> 
+			<prop key="500">500</prop> </props> </property> -->
+
+	</bean>
+
+
+
+</beans>

@@ -1,0 +1,39 @@
+@CHARSET "UTF-8";
+
+.seach{width:auto;text-align: right;margin:10px 0 ;}
+.fl{float:left}.fr{float:right}
+.mt10{margin-top:10px}.mt5{margin-top:5px}.ml10{margin-left:10px;}.ml5{margin-left:5px;}.mr10{margin-right:10px;}.tlc{text-align: center;}
+
+.meneame{border-radius: 4px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); display: inline-block; margin: 10px 0;line-height: 30px;}
+.meneame A ,.meneame SPAN.current,.meneame SPAN.disabled{-moz-border-bottom-colors: none; -moz-border-left-colors: none; -moz-border-right-colors: none; -moz-border-top-colors: none; background-color: #FFFFFF; border-color: #DDDDDD; border-image: none; border-style: solid; border-width: 1px 1px 1px 0; float: left; line-height: 20px; padding: 4px 12px; text-decoration: none;}
+.meneame A:first-child{border-bottom-left-radius: 4px; border-left-width: 1px;border-top-left-radius: 4px;}
+.meneame A:last-child{border-bottom-right-radius: 4px; border-top-right-radius: 4px;}
+.meneame span:first-child{border-bottom-left-radius: 4px; border-left-width: 1px;border-top-left-radius: 4px;}
+.meneame span:last-child{border-bottom-right-radius: 4px; border-top-right-radius: 4px;}
+.meneame A:hover{BACKGROUND-COLOR: #f5f5f5;}
+.meneame A:active{BACKGROUND-COLOR: #fff}
+.meneame SPAN.current{color: #999999;cursor: pointer; background-color: #F5F5F5;}
+.meneame SPAN.disabled{cursor: pointer;}
+
+.container{width:auto ;margin-top: 20px;}
+.ztreeMenu * {font-size: 10pt;font-family:"Microsoft Yahei",Verdana,Simsun,"Segoe UI Web Light","Segoe UI Light","Segoe UI Web Regular","Segoe UI","Segoe UI Symbol","Helvetica Neue",Arial}
+.ztreeMenu{padding: 0px;}
+.ztreeMenu li ul{ margin:0; padding:0}
+.ztreeMenu li {line-height:30px;}
+.ztreeMenu li a {width:100%;height:30px;padding-top: 0px;}
+.ztreeMenu li a:hover {text-decoration:none; background-color: #E7E7E7;}
+.ztreeMenu li a span.button.switch {visibility:hidden}
+.ztreeMenu.showIcon li a span.button.switch {visibility:visible}
+.ztreeMenu li a.curSelectedNode {background-color:#D4D4D4;border:0;height:30px;}
+.ztreeMenu li span {line-height:30px;}
+.ztreeMenu li span.button {margin-top: -7px;}
+.ztreeMenu li span.button.switch {width: 16px;height: 16px;}
+.ztreeMenu li a.level0 span {font-size: 150%;font-weight: bold;}
+.ztreeMenu li span.button {background-image:url("../Plugin/zTree_v3/demo/cn/super/left_menuForOutLook.png"); *background-image:url("myfiles/Plugin/zTree_v3/demo/cn/super/left_menuForOutLook.gif")}
+.ztreeMenu li span.button.switch.level0 {width: 20px; height:20px}
+.ztreeMenu li span.button.switch.level1 {width: 20px; height:20px}
+.ztreeMenu li span.button.noline_open {background-position: 0 0;}
+.ztreeMenu li span.button.noline_close {background-position: -18px 0;}
+.ztreeMenu li span.button.noline_open.level0 {background-position: 0 -18px;}
+.ztreeMenu li span.button.noline_close.level0 {background-position: -18px -18px;}
+

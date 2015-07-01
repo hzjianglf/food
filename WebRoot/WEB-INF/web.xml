@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://xmlns.jcp.org/xml/ns/javaee" xmlns:jsp="http://java.sun.com/xml/ns/javaee/jsp"
+	xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
+	id="WebApp_ID" version="3.1">
+
+	<display-name>springmvc_food</display-name>
+	<description>springmvc_food</description>
+
+	<context-param>
+		<param-name>webAppRootKey</param-name>
+		<param-value>app.root.food</param-value>
+	</context-param>
+
+	<context-param>
+		<param-name>privateKey</param-name>
+		<param-value>MIIBUwIBADANBgkqhkiG9w0BAQEFAASCAT0wggE5AgEAAkEAmbcvGVNGREmiuQPehURivFsMFwanlqAr8PGzdMSQMW1bPHd8jfGUkSQMey0G7BH3rFZjQITBt1NICN2wVznBAwIDAQABAj80PQzEjohSrLOgLLBymcr0N/zj1l8d0VEdkQZrqGFYakkh5FbLBS/wveLuLBTwoeNDEh8D680psFgCq0XDVeECIQDnr5LM8vo6UjwjsjESOjwYVJDzIZwseepeJDFMvrP4EQIhAKnY4Fsy66PsuVafncJXdUakZiZN3VokbU7S+wE4kpvTAiB9rCoIC+CZlBPVFQozJe2FERITH+8T3Qm5CQ7I30TF0QIgKcg6WPUL1sWTSmX1rytIpFoo7t9UxqoTYcKxELnUBxUCIQC3mJSmwP6dXijCy10aiBm/b4pfpdveA5dj4yegZnLYPw==</param-value>
+		<description></description>
+	</context-param>
+
+	<context-param>
+		<param-name>publicKey</param-name>
+		<param-value>MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAJm3LxlTRkRJorkD3oVEYrxbDBcGp5agK/Dxs3TEkDFtWzx3fI3xlJEkDHstBuwR96xWY0CEwbdTSAjdsFc5wQMCAwEAAQ==</param-value>
+		<description></description>
+	</context-param>
+	
+	<context-param>
+		<param-name>casLogout</param-name>
+		<param-value>https://java.laolang.com:8443/cas-server-webapp-4.0.0/logout</param-value>
+		<description>cas登出地址</description>
+	</context-param>
+
+	<context-param>
+		<param-name>contextConfigLocation</param-name>
+		<param-value>
+			classpath:beans.xml,
+			classpath:spring-cas.xml
+		</param-value>
+	</context-param>
+
+	<!-- spring 整合索赔日内个mvc的时候是否需要写ContextLoaderListener -->
+	<listener>
+		<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+	</listener>
+
+	<filter>
+		<filter-name>characterEncodingFilter</filter-name>
+		<filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
+		<init-param>
+			<param-name>encoding</param-name>
+			<param-value>UTF-8</param-value>
+		</init-param>
+		<init-param>
+			<param-name>ForceEncoding</param-name>
+			<param-value>true</param-value>
+		</init-param>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>characterEncodingFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+
+	<!-- 用于单点退出，该过滤器用于实现单点登出功能，可选配置 -->
+	<listener>
+		<listener-class>org.jasig.cas.client.session.SingleSignOutHttpSessionListener</listener-class>
+	</listener>
+
+	<!-- CAS Server 通知 CAS Client，删除session,注销登录信息 -->
+	<filter>
+		<filter-name>CAS Single Sign Out Filter</filter-name>
+		<filter-class>org.jasig.cas.client.session.SingleSignOutFilter</filter-class>
+	</filter>
+	<filter-mapping>
+		<filter-name>CAS Single Sign Out Filter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+	
+
+	<!-- 该过滤器负责用户的认证工作，必须启用它 -->
+	<filter>
+		<filter-name>CASFilter</filter-name>
+		<filter-class>org.jasig.cas.client.authentication.AuthenticationFilter</filter-class>
+		<init-param>
+			<!--这里的server是服务端的IP -->
+			<param-name>casServerLoginUrl</param-name>
+			<param-value>https://java.laolang.com:8443/cas-server-webapp-4.0.0/login</param-value>
+		</init-param>
+		<init-param>
+			<!--这里的server是客户端的IP -->
+			<param-name>serverName</param-name>
+			<param-value>https://java.laolang.com:8443/</param-value>
+		</init-param>
+	</filter>
+	<filter-mapping>
+		<filter-name>CASFilter</filter-name>
+		<url-pattern>/admin/*</url-pattern>
+		<url-pattern>/user/*</url-pattern>
+	</filter-mapping>
+
+	<!-- 该过滤器负责对Ticket的校验工作，必须启用它 -->
+	<filter>
+		<filter-name>CAS Validation Filter</filter-name>
+		<filter-class>org.jasig.cas.client.validation.Cas20ProxyReceivingTicketValidationFilter</filter-class>
+		<init-param>
+			<param-name>casServerUrlPrefix</param-name>
+			<param-value>https://java.laolang.com:8443/cas-server-webapp-4.0.0</param-value>
+		</init-param>
+		<init-param>
+			<param-name>serverName</param-name>
+			<param-value>https://java.laolang.com:8443/</param-value>
+		</init-param>
+		
+	</filter>
+	<filter-mapping>
+		<filter-name>CAS Validation Filter</filter-name>
+		<url-pattern>/admin/*</url-pattern>
+		<url-pattern>/user/*</url-pattern>
+	</filter-mapping>
+
+
+	<!-- 该过滤器负责实现HttpServletRequest请求的包裹， 比如允许开发者通过HttpServletRequest的getRemoteUser()方法获得SSO登录用户的登录名，可选配置。 -->
+	<filter>
+		<filter-name>CAS HttpServletRequest Wrapper Filter</filter-name>
+		<filter-class>
+			org.jasig.cas.client.util.HttpServletRequestWrapperFilter</filter-class>
+	</filter>
+	<filter-mapping>
+		<filter-name>CAS HttpServletRequest Wrapper Filter</filter-name>
+		<url-pattern>/admin/*</url-pattern>
+		<url-pattern>/user/*</url-pattern>
+	</filter-mapping>
+
+
+	<!-- 该过滤器使得开发者可以通过org.jasig.cas.client.util.AssertionHolder来获取用户的登录名。 比如AssertionHolder.getAssertion().getPrincipal().getName()。 -->
+	<filter>
+		<filter-name>CAS Assertion Thread Local Filter</filter-name>
+		<filter-class>org.jasig.cas.client.util.AssertionThreadLocalFilter</filter-class>
+	</filter>
+	<filter-mapping>
+		<filter-name>CAS Assertion Thread Local Filter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+
+	<!-- 自动根据单点登录的结果设置本系统的用户信息 -->
+	<filter>
+		<display-name>AutoSetUserAdapterFilter</display-name>
+		<filter-name>AutoSetUserAdapterFilter</filter-name>
+		<filter-class>com.sniper.springmvc.filter.AutoSetUserAdapterFilter</filter-class>
+	</filter>
+	<filter-mapping>
+		<filter-name>AutoSetUserAdapterFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+
+	<!-- ======================== 单点登录结束 ======================== -->
+
+
+	<!--配置 HiddenHttpMethodFilter请可以把post请求转为delete请求或者post请求改成put -->
+	<filter>
+		<filter-name>hiddenHttpMethodfilter</filter-name>
+		<filter-class>org.springframework.web.filter.HiddenHttpMethodFilter</filter-class>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>hiddenHttpMethodfilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+
+	<!-- 登录验证权限 -->
+	<filter>
+		<filter-name>springSecurityFilterChain</filter-name>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>springSecurityFilterChain</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+
+	<!-- sitemesh 配置 -->
+	<filter>
+		<filter-name>sitemesh</filter-name>
+		<filter-class>com.sniper.springmvc.sitemesh3.MySiteMeshFilter</filter-class>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>sitemesh</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+
+
+	<!-- springmvc 配置 -->
+	<servlet>
+		<servlet-name>springDispatcherServlet</servlet-name>
+		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+		<init-param>
+			<param-name>contextConfigLocation</param-name>
+			<param-value>classpath:springmvc.xml</param-value>
+		</init-param>
+		<!-- 加载时创建 -->
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+
+	<servlet-mapping>
+		<servlet-name>springDispatcherServlet</servlet-name>
+		<url-pattern>/</url-pattern>
+	</servlet-mapping>
+
+	<!-- http://blog.csdn.net/caiwenfeng_for_23/article/details/45242545 -->
+	<filter>
+		<filter-name>SpringOpenSessionInViewFilter</filter-name>
+		<filter-class>org.springframework.orm.hibernate4.support.OpenSessionInViewFilter</filter-class>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>SpringOpenSessionInViewFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+
+	<error-page>
+		<error-code>404</error-code>
+		<location>/WEB-INF/template/error/404.jsp</location>
+	</error-page>
+	
+	<jsp-config>
+		<jsp-property-group>
+			<url-pattern>*.jsp</url-pattern>
+			<url-pattern>*.ftl</url-pattern>
+			<trim-directive-whitespaces>true</trim-directive-whitespaces>
+		</jsp-property-group>
+	</jsp-config>
+
+</web-app>
